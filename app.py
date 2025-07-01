@@ -40,7 +40,7 @@ app.layout = html.Div([
 
     # Main content with selected county
     html.Div([
-        html.H2("Selected County"),
+        html.H2("Selected School"),
         html.Div(id="county", style={
             'fontSize': '24px',
             'padding': '20px',
