@@ -1,8 +1,8 @@
 charset-normalizer==3.3.2
 click==8.1.7
-dash==2.15.0
-dash-core-components==2.0.0
-dash-html-components==2.0.0
+dash==3.1.1
+dash-core-components==3.1.1
+dash-html-components==3.1.1
 dash-table==5.0.0
 Flask==2.2.5
 idna==3.10
