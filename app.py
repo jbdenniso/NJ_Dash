@@ -1,68 +1,97 @@
+import json
+import pathlib
+import random
+
 import dash
-from dash import dcc, html
-from dash.dependencies import Input, Output
-import numpy as np
+from dash import html, dcc, Output, Input
+import dash_leaflet as dl
+import dash_leaflet.express as dlx
 
-# Initialize the Dash app
+# Load GeoJSON data
+here = pathlib.Path(__file__)
+with open(here.parent / "filtered_output.geojson", "r") as f:
+    county_geojson = json.load(f)
+
+# Extract features and assign random colors
+for feature in county_geojson["features"]:
+    feature["properties"]["style"] = {
+        "fillColor": random.choice(["#ffcccc", "#cce5ff", "#d5f5e3", "#f9e79f"]),
+        "color": "black",
+        "weight": 1,
+        "fillOpacity": 0.6
+    }
+
+# Create Dash app
 app = dash.Dash(__name__)
+server = app.server
 
-# Sample data
-categories = ['A', 'B', 'C', 'D']
-values1 = np.random.randint(10, 100, size=4)
-values2 = np.random.randint(10, 100, size=4)
+# Create GeoJSON layer with click support
+geojson = dl.GeoJSON(
+    data=county_geojson,
+    id="geojson",
+    options=dict(style=lambda feature: feature["properties"]["style"]),
+    zoomToBoundsOnClick=True,
+    hoverStyle=dict(weight=3, color="black", fillOpacity=0.7),
+)
 
 # App layout
 app.layout = html.Div([
-    dcc.Graph(id='bar-chart'),
-    dcc.Dropdown(
-        id='chart-type-dropdown',
-        options=[
-            {'label': 'Grouped', 'value': 'group'},
-            {'label': 'Stacked', 'value': 'stack'}
-        ],
-        value='group',  # Default value
-        clearable=False,
-        style={'width': '50%'}
-    ),
-    dcc.Store(id='bar-data', data={'categories': categories, 'values1': list(values1), 'values2': list(values2)})
+    html.Div([
+        html.H2("NJ County Map"),
+        dl.Map(center=[40.206, -74.766], zoom=8, children=[
+            dl.TileLayer(),
+            geojson
+        ], style={'width': '100%', 'height': '400px'}),
+        html.H4("Selected County:"),
+        html.Div(id="selected-county", style={
+            'padding': '10px',
+            'fontWeight': 'bold',
+            'fontSize': '18px',
+            'color': '#333',
+            'backgroundColor': '#e0e6ff',
+            'border': '2px solid #b3b8ff',
+            'borderRadius': '10px',
+            'textAlign': 'center',
+            'marginBottom': '20px'
+        }),
+    ], style={
+        'width': '25%',
+        'padding': '20px',
+        'backgroundColor': '#f8f8f8',
+        'float': 'left',
+        'boxSizing': 'border-box'
+    }),
+
+    html.Div([
+        *[
+            html.Div([
+                html.H3(f"📊 Indicator {i}"),
+                html.P(f"Content for Indicator {i}")
+            ], style={
+                'textAlign': 'center',
+                'backgroundColor': '#e0e6ff',
+                'border': '2px solid #b3b8ff',
+                'borderRadius': '15px',
+                'padding': '20px',
+                'marginBottom': '20px'
+            }) for i in range(1, 14)
+        ]
+    ], style={
+        'width': '75%',
+        'padding': '20px',
+        'float': 'left',
+        'boxSizing': 'border-box'
+    })
 ])
 
-# Client-side callback (JavaScript function)
-app.clientside_callback(
-    """
-    function(chartType, data) {
-        var categories = data.categories;
-        var values1 = data.values1;
-        var values2 = data.values2;
-
-        var barmode = chartType === 'stack' ? 'stack' : 'group';
-
-        return {
-            'data': [
-                {
-                    'x': categories,
-                    'y': values1,
-                    'type': 'bar',
-                    'name': 'Series 1'
-                },
-                {
-                    'x': categories,
-                    'y': values2,
-                    'type': 'bar',
-                    'name': 'Series 2'
-                }
-            ],
-            'layout': {
-                'title': `Bar Chart (${chartType === 'stack' ? 'Stacked' : 'Grouped'})`,
-                'barmode': barmode
-            }
-        };
-    }
-    """,
-    Output('bar-chart', 'figure'),
-    [Input('chart-type-dropdown', 'value')],
-    [Input('bar-data', 'data')]
+@app.callback(
+    Output("selected-county", "children"),
+    Input("geojson", "click_feature")
 )
+def display_selected_county(feature):
+    if feature is None:
+        return "Click a county on the map"
+    return feature["properties"].get("NAME", "Unknown")
 
 # Run the app
 if __name__ == '__main__':
