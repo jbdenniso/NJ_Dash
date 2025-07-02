@@ -4,7 +4,11 @@ import dash_leaflet as dl
 import json
 
 # Load your GeoJSON data
-with open("filtered_output.geojson") as f:
+import pathlib
+
+script_directory = pathlib.Path(__file__).parent.resolve()
+
+with open("%s/filtered_output.geojson"%(script_directory)) as f:
     geojson_data = json.load(f)
 
 # Create a GeoJSON layer
